@@ -898,7 +898,7 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
         echo "$JSON_RESPONSE"
         exit 1
       fi
-    done <<< "$(echo -e "$INPUT_INITIAL_DEPLOYMENT_COMMANDS")"
+    done
   fi
   if [[ -n "$INPUT_DEPLOYMENT_COMMANDS" ]]; then
     echo ""
@@ -943,7 +943,7 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
         echo "$JSON_RESPONSE"
         exit 1
       fi
-    done <<< "$(echo -e "$INPUT_DEPLOYMENT_COMMANDS")"
+    done
   fi
 else
   echo "Deployment failed ($LAST_DEPLOYMENT_STATUS)"
