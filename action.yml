@@ -101,6 +101,12 @@ inputs:
     description: 'Whether to automatically source environment variables into the deployment script'
     required: false
     default: 'true'
+  initial_deployment_commands:
+    description: "Commands to run after initial deployment"
+    required: false
+  deployment_commands:
+    description: "Commands to run after every deployment"
+    required: false
   create_worker:
     description: 'Create site worker'
     required: false

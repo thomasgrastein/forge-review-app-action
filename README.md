@@ -32,6 +32,7 @@ For example, a `fix-37` branch with `mydomain.tld` root_domain will result in a 
 `database_name` is also based on the branch name (escaping it with only `a-z0-9_` chars).
 
 ### About stub files
+
 <a name="stub-files"></a>
 
 Stub files must be present on the github workspace of your running workflow before call this action.
@@ -73,7 +74,6 @@ String replacement map:
 |--------------------------|--------------------------------------|
 | `STUB_HOST`              | Host name of the review-app site.    |
 
-
 ## Inputs
 
 It is highly recommended that you store all inputs using [GitHub Secrets](https://docs.github.com/en/actions/reference/encrypted-secrets) or variables.
@@ -107,6 +107,8 @@ It is highly recommended that you store all inputs using [GitHub Secrets](https:
 | `deploy_script_stub_path`   | no       | `.github/workflows/deploy-script.stub` | Deploy script stub file path inside the git repository.                                                                                     |
 | `deployment_timeout`        | no       | `120`                                  | Maximum wait time in seconds for deploying.                                                                                                 |
 | `deployment_auto_source`    | no       | `true`                                 | Whether to automatically source environment variables into the deployment script.                                                           |
+| `initial_deployment_commands`| no      |                                        | Commands to run after initial deployment                                                                                                    |
+| `deployment_commands`       | no       |                                        | Commands to run after every deployment                                                                                                      |
 | `create_worker`             | no       | `false`                                | Create site worker.                                                                                                                         |
 | `worker_connection`         | no       | `redis`                                | Worker connection (if creation is requested).                                                                                               |
 | `worker_timeout`            | no       | `90`                                   | Worker timeout in seconds (if creation is requested).                                                                                       |
@@ -118,7 +120,6 @@ It is highly recommended that you store all inputs using [GitHub Secrets](https:
 | `worker_daemon`             | no       | `true`                                 | Worker "daemon" (if creation is requested).                                                                                                 |
 | `worker_force`              | no       | `false`                                | Worker "force" (if creation is requested).                                                                                                  |
 | `worker_queue`              | no       |                                        | Worker queue (if creation is requested). Default queue will be used if not defined.                                                         |
-
 
 ## Outputs
 
