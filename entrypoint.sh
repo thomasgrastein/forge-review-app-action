@@ -188,11 +188,11 @@ if [[ -z "$INPUT_WORKER_FORCE" ]]; then
 	INPUT_WORKER_FORCE='false'
 fi
 
-if [[ -z "$INPUT_INITIAL_DEPLOYMENT_COMMANDS" ]]; then
+if [[ -z "$INPUT_INITIAL_DEPLOYMENT_COMMAND" ]]; then
 	INPUT_INITIAL_DEPLOYMENT_COMMANDS=''
 fi
 
-if [[ -z "$INPUT_DEPLOYMENT_COMMANDS" ]]; then
+if [[ -z "$INPUT_DEPLOYMENT_COMMAND" ]]; then
 	INPUT_DEPLOYMENT_COMMANDS=''
 fi
 
@@ -855,103 +855,89 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
 	echo "Deployment output:"
 	echo ""
 	echo "$LAST_DEPLOYMENT_OUTPUT"
-	if [[ $RA_FOUND == 'false' && -n "$INPUT_INITIAL_DEPLOYMENT_COMMANDS" ]]; then
+	if [[ $RA_FOUND == 'false' && -n "$INPUT_INITIAL_DEPLOYMENT_COMMAND" ]]; then
 		echo ""
-		echo "* Execute initial deployment commands"
+		echo "* Execute initial deployment command"
+		API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
+		JSON_PAYLOAD='{
+			"command": "'"$INPUT_INITIAL_DEPLOYMENT_COMMAND"'"
+		}'
 
-		while IFS= read -r command; do
-			command=$(echo "$command" | xargs) # Trim leading/trailing whitespace
-			if [[ -n "$command" ]]; then
-				API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
+		if [[ $DEBUG == 'true' ]]; then
+			echo "[DEBUG] CURL POST on $API_URL with payload :"
+			echo $JSON_PAYLOAD
+			echo ""
+		fi
 
-				JSON_PAYLOAD='{
-          "command": "'"$command"'"
-        }'
+		HTTP_STATUS=$(
+			curl -s -o response.json -w "%{http_code}" \
+				-X POST \
+				-H "$AUTH_HEADER" \
+				-H "Accept: application/json" \
+				-H "Content-Type: application/json" \
+				-d "$JSON_PAYLOAD" \
+				"$API_URL"
+		)
 
-				if [[ $DEBUG == 'true' ]]; then
-					echo "[DEBUG] CURL POST on $API_URL with payload :"
-					echo $JSON_PAYLOAD
-					echo ""
-				fi
+		JSON_RESPONSE=$(cat response.json)
 
-				HTTP_STATUS=$(
-					curl -s -o response.json -w "%{http_code}" \
-						-X POST \
-						-H "$AUTH_HEADER" \
-						-H "Accept: application/json" \
-						-H "Content-Type: application/json" \
-						-d "$JSON_PAYLOAD" \
-						"$API_URL"
-				)
+		if [[ $DEBUG == 'true' ]]; then
+			echo "[DEBUG] response JSON:"
+			echo $JSON_RESPONSE
+			echo ""
+		fi
 
-				JSON_RESPONSE=$(cat response.json)
-
-				if [[ $DEBUG == 'true' ]]; then
-					echo "[DEBUG] response JSON:"
-					echo $JSON_RESPONSE
-					echo ""
-				fi
-
-				if [[ $HTTP_STATUS -eq 200 ]]; then
-					echo "Command '$command' executed successfully"
-					sleep 1
-				else
-					echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
-					echo "JSON Response:"
-					echo "$JSON_RESPONSE"
-					exit 1
-				fi
-			fi
-		done <<<"$(echo -e "$INPUT_INITIAL_DEPLOYMENT_COMMANDS")"
+		if [[ $HTTP_STATUS -eq 200 ]]; then
+			echo "Command '$command' executed successfully"
+			sleep 1
+		else
+			echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
+			echo "JSON Response:"
+			echo "$JSON_RESPONSE"
+			exit 1
+		fi
 	fi
-	if [[ -n "$INPUT_DEPLOYMENT_COMMANDS" ]]; then
+	if [[ "$INPUT_DEPLOYMENT_COMMAND" ]]; then
 		echo ""
-		echo "* Execute deployment commands"
+		echo "* Execute deployment command"
+		API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
+		JSON_PAYLOAD='{
+			"command": "'"$INPUT_DEPLOYMENT_COMMAND"'"
+		}'
 
-		while IFS= read -r command; do
-			command=$(echo "$command" | xargs) # Trim leading/trailing whitespace
-			if [[ -n "$command" ]]; then
-				API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
+		if [[ $DEBUG == 'true' ]]; then
+			echo "[DEBUG] CURL POST on $API_URL with payload :"
+			echo $JSON_PAYLOAD
+			echo ""
+		fi
 
-				JSON_PAYLOAD='{
-          "command": "'"$command"'"
-        }'
+		HTTP_STATUS=$(
+			curl -s -o response.json -w "%{http_code}" \
+				-X POST \
+				-H "$AUTH_HEADER" \
+				-H "Accept: application/json" \
+				-H "Content-Type: application/json" \
+				-d "$JSON_PAYLOAD" \
+				"$API_URL"
+		)
 
-				if [[ $DEBUG == 'true' ]]; then
-					echo "[DEBUG] CURL POST on $API_URL with payload :"
-					echo $JSON_PAYLOAD
-					echo ""
-				fi
+		JSON_RESPONSE=$(cat response.json)
 
-				HTTP_STATUS=$(
-					curl -s -o response.json -w "%{http_code}" \
-						-X POST \
-						-H "$AUTH_HEADER" \
-						-H "Accept: application/json" \
-						-H "Content-Type: application/json" \
-						-d "$JSON_PAYLOAD" \
-						"$API_URL"
-				)
+		if [[ $DEBUG == 'true' ]]; then
+			echo "[DEBUG] response JSON:"
+			echo $JSON_RESPONSE
+			echo ""
+		fi
 
-				JSON_RESPONSE=$(cat response.json)
-
-				if [[ $DEBUG == 'true' ]]; then
-					echo "[DEBUG] response JSON:"
-					echo $JSON_RESPONSE
-					echo ""
-				fi
-
-				if [[ $HTTP_STATUS -eq 200 ]]; then
-					echo "Command '$command' executed successfully"
-					sleep 1
-				else
-					echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
-					echo "JSON Response:"
-					echo "$JSON_RESPONSE"
-					exit 1
-				fi
-			fi
-		done <<<"$(echo -e "$INPUT_DEPLOYMENT_COMMANDS")"
+		if [[ $HTTP_STATUS -eq 200 ]]; then
+			echo "Command '$command' executed successfully"
+			sleep 1
+		else
+			echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
+			echo "JSON Response:"
+			echo "$JSON_RESPONSE"
+			exit 1
+		fi
 	fi
 else
 	echo "Deployment failed ($LAST_DEPLOYMENT_STATUS)"
