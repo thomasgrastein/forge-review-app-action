@@ -888,10 +888,10 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
 		fi
 
 		if [[ $HTTP_STATUS -eq 200 ]]; then
-			echo "Command '$command' executed successfully"
+			echo "Command '$INPUT_INITIAL_DEPLOYMENT_COMMAND' executed successfully"
 			sleep 1
 		else
-			echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
+			echo "Failed to execute command '$INPUT_INITIAL_DEPLOYMENT_COMMAND'. HTTP status code: $HTTP_STATUS"
 			echo "JSON Response:"
 			echo "$JSON_RESPONSE"
 			exit 1
@@ -930,10 +930,10 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
 		fi
 
 		if [[ $HTTP_STATUS -eq 200 ]]; then
-			echo "Command '$command' executed successfully"
+			echo "Command '$INPUT_DEPLOYMENT_COMMAND' executed successfully"
 			sleep 1
 		else
-			echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
+			echo "Failed to execute command '$INPUT_DEPLOYMENT_COMMAND'. HTTP status code: $HTTP_STATUS"
 			echo "JSON Response:"
 			echo "$JSON_RESPONSE"
 			exit 1
