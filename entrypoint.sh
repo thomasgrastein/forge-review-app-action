@@ -894,6 +894,7 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
 
 				if [[ $HTTP_STATUS -eq 200 ]]; then
 					echo "Command '$command' executed successfully"
+					sleep 1
 				else
 					echo "Failed to execute command '$command'. HTTP status code: $HTTP_STATUS"
 					echo "JSON Response:"
