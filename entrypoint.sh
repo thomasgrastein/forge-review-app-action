@@ -859,7 +859,7 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
     echo ""
     echo "* Execute initial deployment commands"
 
-    while IFS= read -r command; do
+    printf '%s\n' "$INPUT_INITIAL_DEPLOYMENT_COMMANDS" | while IFS= read -r command; do
       API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
 
       JSON_PAYLOAD='{
@@ -904,7 +904,7 @@ if [[ $LAST_DEPLOYMENT_STATUS == 'finished' ]]; then
     echo ""
     echo "* Execute deployment commands"
 
-    while IFS= read -r command; do
+    printf '%s\n' "$INPUT_DEPLOYMENT_COMMANDS" | while IFS= read -r command; do
       API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/commands"
 
       JSON_PAYLOAD='{
