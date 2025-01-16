@@ -2,9 +2,8 @@
 set -e
 
 # Prepare vars and default values
-
 if [[ -z "$DEBUG" ]]; then
-	DEBUG='false'
+	DEBUG='true'
 fi
 
 if [[ $DEBUG == 'true' ]]; then
