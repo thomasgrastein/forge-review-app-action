@@ -107,6 +107,12 @@ inputs:
   deployment_command:
     description: "Command to run after every deployment"
     required: false
+  upload_env:
+    description: "Whether .env vars should be generated and deployed"
+    default: 'true'
+  upload_deployment_script:
+    description: "Whether deployment script should be generated and deployed"
+    default: 'true'
   create_worker:
     description: 'Create site worker'
     required: false

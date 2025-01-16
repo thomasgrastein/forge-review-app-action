@@ -196,20 +196,32 @@ if [[ -z "$INPUT_DEPLOYMENT_COMMAND" ]]; then
 	INPUT_DEPLOYMENT_COMMANDS=''
 fi
 
-echo ""
-echo "* Check that stubs files exists"
-
-if [ ! -e "/github/workspace/$INPUT_ENV_STUB_PATH" ]; then
-	echo ".env stub file not found at /github/workspace/$INPUT_ENV_STUB_PATH"
-	exit 1
+if [[ -z "$INPUT_UPLOAD_ENV" ]]; then
+	INPUT_UPLOAD_ENV='true'
 fi
 
-if [ ! -e "/github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH" ]; then
-	echo "Deploy script stub file not found at /github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH"
-	exit 1
+if [[ -z "$INPUT_UPLOAD_DEPLOYMENT_SCRIPT" ]]; then
+	INPUT_UPLOAD_DEPLOYMENT_SCRIPT='true'
 fi
 
-echo ".env and deploy script stub files found"
+if [[ $INPUT_UPLOAD_ENV == 'true' ]]; then
+
+	echo ""
+	echo "* Check that stubs files exists"
+
+	if [ ! -e "/github/workspace/$INPUT_ENV_STUB_PATH" ]; then
+		echo ".env stub file not found at /github/workspace/$INPUT_ENV_STUB_PATH"
+		exit 1
+	fi
+
+	if [ ! -e "/github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH" ]; then
+		echo "Deploy script stub file not found at /github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH"
+		exit 1
+	fi
+
+	echo ".env and deploy script stub files found"
+
+fi
 
 echo ""
 echo '* Get Forge server sites'
@@ -552,125 +564,130 @@ if [[ $INPUT_LETSENCRYPT_CERTIFICATE == 'true' ]]; then
 	fi
 fi
 
-echo ""
-echo "* Setup .env file"
-
-cp /github/workspace/$INPUT_ENV_STUB_PATH .env
-
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] Stub .env file content:"
-	cat .env
+if [[ $INPUT_UPLOAD_ENV == 'true' ]]; then
 	echo ""
+	echo "* Setup .env file"
+
+	cp /github/workspace/$INPUT_ENV_STUB_PATH .env
+
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] Stub .env file content:"
+		cat .env
+		echo ""
+	fi
+
+	sed -i -e "s#STUB_HOST#$INPUT_HOST#" .env
+	sed -i -e "s#STUB_DATABASE_NAME#$INPUT_DATABASE_NAME#" .env
+	sed -i -e "s#STUB_DATABASE_USER#$INPUT_DATABASE_USER#" .env
+	sed -i -e "s#STUB_DATABASE_PASSWORD#$INPUT_DATABASE_PASSWORD#" .env
+
+	ENV_CONTENT=$(cat .env)
+
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] Generated .env file content:"
+		echo $ENV_CONTENT
+		echo ""
+	fi
+
+	ESCAPED_ENV_CONTENT=$(echo "$ENV_CONTENT" | jq -Rsa .)
+
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] Escaped .env file content:"
+		echo $ESCAPED_ENV_CONTENT
+		echo ""
+	fi
+
+	API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/env"
+
+	JSON_PAYLOAD='{
+		"content": '"$ESCAPED_ENV_CONTENT"'
+	}'
+
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] CURL POST on $API_URL with payload :"
+		echo $JSON_PAYLOAD
+		echo ""
+	fi
+
+	HTTP_STATUS=$(
+		curl -s -o response.json -w "%{http_code}" \
+			-X PUT \
+			-H "$AUTH_HEADER" \
+			-H "Accept: application/json" \
+			-H "Content-Type: application/json" \
+			-d "$JSON_PAYLOAD" \
+			"$API_URL"
+	)
+
+	JSON_RESPONSE=$(cat response.json)
+
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] response JSON:"
+		echo $JSON_RESPONSE
+		echo ""
+	fi
+
+	if [[ $HTTP_STATUS -eq 200 ]]; then
+		echo ".env file updated successfully"
+	else
+		echo "Failed to update .env file. HTTP status code: $HTTP_STATUS"
+		echo "JSON Response:"
+		echo "$JSON_RESPONSE"
+		exit 1
+	fi
 fi
 
-sed -i -e "s#STUB_HOST#$INPUT_HOST#" .env
-sed -i -e "s#STUB_DATABASE_NAME#$INPUT_DATABASE_NAME#" .env
-sed -i -e "s#STUB_DATABASE_USER#$INPUT_DATABASE_USER#" .env
-sed -i -e "s#STUB_DATABASE_PASSWORD#$INPUT_DATABASE_PASSWORD#" .env
+if [[ $INPUT_UPLOAD_DEPLOYMENT_SCRIPT == 'true' ]]; then
 
-ENV_CONTENT=$(cat .env)
-
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] Generated .env file content:"
-	echo $ENV_CONTENT
 	echo ""
-fi
+	echo "* Setup deploy script"
 
-ESCAPED_ENV_CONTENT=$(echo "$ENV_CONTENT" | jq -Rsa .)
+	cp /github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH deploy-script
 
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] Escaped .env file content:"
-	echo $ESCAPED_ENV_CONTENT
-	echo ""
-fi
+	sed -i -e "s#STUB_HOST#$INPUT_HOST#" deploy-script
 
-API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/env"
+	DEPLOY_SCRIPT_CONTENT=$(cat deploy-script)
+	ESCAPED_DEPLOY_SCRIPT_CONTENT=$(echo "$DEPLOY_SCRIPT_CONTENT" | jq -Rsa .)
 
-JSON_PAYLOAD='{
-  "content": '"$ESCAPED_ENV_CONTENT"'
-}'
+	API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/deployment/script"
 
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] CURL POST on $API_URL with payload :"
-	echo $JSON_PAYLOAD
-	echo ""
-fi
+	JSON_PAYLOAD='{
+		"content": '"$ESCAPED_DEPLOY_SCRIPT_CONTENT"',
+		"auto_source": '$INPUT_DEPLOYMENT_AUTO_SOURCE'
+	}'
 
-HTTP_STATUS=$(
-	curl -s -o response.json -w "%{http_code}" \
-		-X PUT \
-		-H "$AUTH_HEADER" \
-		-H "Accept: application/json" \
-		-H "Content-Type: application/json" \
-		-d "$JSON_PAYLOAD" \
-		"$API_URL"
-)
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] CURL POST on $API_URL with payload :"
+		echo $JSON_PAYLOAD
+		echo ""
+	fi
 
-JSON_RESPONSE=$(cat response.json)
+	HTTP_STATUS=$(
+		curl -s -o response.json -w "%{http_code}" \
+			-X PUT \
+			-H "$AUTH_HEADER" \
+			-H "Accept: application/json" \
+			-H "Content-Type: application/json" \
+			-d "$JSON_PAYLOAD" \
+			"$API_URL"
+	)
 
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] response JSON:"
-	echo $JSON_RESPONSE
-	echo ""
-fi
+	JSON_RESPONSE=$(cat response.json)
 
-if [[ $HTTP_STATUS -eq 200 ]]; then
-	echo ".env file updated successfully"
-else
-	echo "Failed to update .env file. HTTP status code: $HTTP_STATUS"
-	echo "JSON Response:"
-	echo "$JSON_RESPONSE"
-	exit 1
-fi
+	if [[ $DEBUG == 'true' ]]; then
+		echo "[DEBUG] response JSON:"
+		echo $JSON_RESPONSE
+		echo ""
+	fi
 
-echo ""
-echo "* Setup deploy script"
-
-cp /github/workspace/$INPUT_DEPLOY_SCRIPT_STUB_PATH deploy-script
-
-sed -i -e "s#STUB_HOST#$INPUT_HOST#" deploy-script
-
-DEPLOY_SCRIPT_CONTENT=$(cat deploy-script)
-ESCAPED_DEPLOY_SCRIPT_CONTENT=$(echo "$DEPLOY_SCRIPT_CONTENT" | jq -Rsa .)
-
-API_URL="https://forge.laravel.com/api/v1/servers/$INPUT_FORGE_SERVER_ID/sites/$SITE_ID/deployment/script"
-
-JSON_PAYLOAD='{
-  "content": '"$ESCAPED_DEPLOY_SCRIPT_CONTENT"',
-  "auto_source": '$INPUT_DEPLOYMENT_AUTO_SOURCE'
-}'
-
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] CURL POST on $API_URL with payload :"
-	echo $JSON_PAYLOAD
-	echo ""
-fi
-
-HTTP_STATUS=$(
-	curl -s -o response.json -w "%{http_code}" \
-		-X PUT \
-		-H "$AUTH_HEADER" \
-		-H "Accept: application/json" \
-		-H "Content-Type: application/json" \
-		-d "$JSON_PAYLOAD" \
-		"$API_URL"
-)
-
-JSON_RESPONSE=$(cat response.json)
-
-if [[ $DEBUG == 'true' ]]; then
-	echo "[DEBUG] response JSON:"
-	echo $JSON_RESPONSE
-	echo ""
-fi
-
-if [[ $HTTP_STATUS -eq 200 ]]; then
-	echo "Deployment script updated successfully"
-else
-	echo "Failed to update .env file. HTTP status code: $HTTP_STATUS"
-	echo "JSON Response:"
-	echo "$JSON_RESPONSE"
-	exit 1
+	if [[ $HTTP_STATUS -eq 200 ]]; then
+		echo "Deployment script updated successfully"
+	else
+		echo "Failed to update .env file. HTTP status code: $HTTP_STATUS"
+		echo "JSON Response:"
+		echo "$JSON_RESPONSE"
+		exit 1
+	fi
 fi
 
 echo ""
