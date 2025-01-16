@@ -188,11 +188,11 @@ if [[ -z "$INPUT_WORKER_FORCE" ]]; then
 fi
 
 if [[ -z "$INPUT_INITIAL_DEPLOYMENT_COMMAND" ]]; then
-	INPUT_INITIAL_DEPLOYMENT_COMMANDS=''
+	INPUT_INITIAL_DEPLOYMENT_COMMAND=''
 fi
 
 if [[ -z "$INPUT_DEPLOYMENT_COMMAND" ]]; then
-	INPUT_DEPLOYMENT_COMMANDS=''
+	INPUT_DEPLOYMENT_COMMAND=''
 fi
 
 if [[ -z "$INPUT_UPLOAD_ENV" ]]; then
@@ -219,7 +219,9 @@ if [[ $INPUT_UPLOAD_ENV == 'true' ]]; then
 	fi
 
 	echo ".env and deploy script stub files found"
-
+else
+	echo ""
+	echo "* Skip .env upload"
 fi
 
 echo ""
@@ -687,6 +689,10 @@ if [[ $INPUT_UPLOAD_DEPLOYMENT_SCRIPT == 'true' ]]; then
 		echo "$JSON_RESPONSE"
 		exit 1
 	fi
+
+else
+	echo ""
+	echo "* Skip deployment script upload"
 fi
 
 echo ""
