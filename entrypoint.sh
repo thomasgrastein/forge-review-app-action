@@ -3,7 +3,7 @@ set -e
 
 # Prepare vars and default values
 if [[ -z "$DEBUG" ]]; then
-	DEBUG='true'
+	DEBUG='false'
 fi
 
 if [[ $DEBUG == 'true' ]]; then
